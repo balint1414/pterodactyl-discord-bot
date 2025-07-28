@@ -25,7 +25,7 @@ async def users(ctx):
         embed = discord.Embed(title="Users", description="List of all users", color=discord.Color.green())
         for user in r.json()["data"]:
             embed.add_field(name=user["attributes"]["username"], value=f"ID: {user['attributes']['id']}\nEmail: {user['attributes']['email']}\nFull name: {user['attributes']['first_name']} {user['attributes']['last_name']}", inline=True)
-        await ctx.respond(embed=embed)
+        await ctx.respond(embed=embed, ephemeral=True)
     except Exception as e:
         errorEmbed = discord.Embed(title="Error", description="An error occurred while processing your request. Maybe the token had a bad day?", color=discord.Color.red(), fields=[discord.EmbedField(name="Error", value=str(e))])
         await ctx.respond(embed=errorEmbed, ephemeral=True)
@@ -69,5 +69,24 @@ async def servers(ctx):
         errorEmbed = discord.Embed(title="Error", description="An error occurred while processing your request. Maybe the token had a bad day?", color=discord.Color.red(), fields=[discord.EmbedField(name="Error", value=str(e))])
         await ctx.respond(embed=errorEmbed, ephemeral=True)
         return
-    
+
+@list.command(description="List all nodes")
+async def nodes(ctx):
+    await ctx.response.defer(ephemeral=True)
+    if ctx.author.id not in owner_ids:
+        await ctx.respond(embed=noPermEmbed, ephemeral=True)
+        return
+    try:
+        r = requests.get(os.getenv("PTERODACTYL_URL") + "/api/application/nodes", headers={"Authorization":"Bearer " + os.getenv("PTERODACTYL_ADMIN_API_KEY")})
+        print(r.status_code)
+        embed = discord.Embed(title="Nodes", description=f"We found {len(r.json()['data'])} nodes", color=discord.Color.green())
+        for node in r.json()["data"]:
+            embed.add_field(name=node["attributes"]["name"], value=f"```FQDN: {node['attributes']['fqdn']}\nMemory: {node['attributes']['allocated_resources']['memory']}/{node['attributes']['memory']} MiB\nDisk: {node['attributes']['allocated_resources']['disk']}/{node['attributes']['disk']} MiB```", inline=False)
+        await ctx.respond(embed=embed, ephemeral=True)
+    except Exception as e:
+        errorEmbed = discord.Embed(title="Error", description="An error occurred while processing your request. Maybe the token had a bad day?", color=discord.Color.red(), fields=[discord.EmbedField(name="Error", value=str(e))])
+        await ctx.respond(embed=errorEmbed, ephemeral=True)
+        return
+
+
 bot.run(os.getenv("TOKEN"))
