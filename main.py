@@ -21,7 +21,6 @@ async def users(ctx):
         return
     try:
         r = requests.get(os.getenv("PTERODACTYL_URL") + "/api/application/users", headers={"Authorization":"Bearer " + os.getenv("PTERODACTYL_ADMIN_API_KEY")})
-        print(r.status_code)
         embed = discord.Embed(title="Users", description="List of all users", color=discord.Color.green())
         for user in r.json()["data"]:
             embed.add_field(name=user["attributes"]["username"], value=f"ID: {user['attributes']['id']}\nEmail: {user['attributes']['email']}\nFull name: {user['attributes']['first_name']} {user['attributes']['last_name']}", inline=True)
@@ -59,7 +58,6 @@ async def servers(ctx):
                 return
     try:
         r = requests.get(os.getenv("PTERODACTYL_URL") + "/api/application/servers", headers={"Authorization":"Bearer " + os.getenv("PTERODACTYL_ADMIN_API_KEY")})
-        print(r.status_code)
         embed = discord.Embed(title="Servers", description=f"We found {len(r.json()['data'])} servers", color=discord.Color.green())
         embed.set_footer(text="You are an admin, so you can see all servers.")
         for server in r.json()["data"]:
@@ -78,7 +76,6 @@ async def nodes(ctx):
         return
     try:
         r = requests.get(os.getenv("PTERODACTYL_URL") + "/api/application/nodes", headers={"Authorization":"Bearer " + os.getenv("PTERODACTYL_ADMIN_API_KEY")})
-        print(r.status_code)
         embed = discord.Embed(title="Nodes", description=f"We found {len(r.json()['data'])} nodes", color=discord.Color.green())
         for node in r.json()["data"]:
             embed.add_field(name=node["attributes"]["name"], value=f"```FQDN: {node['attributes']['fqdn']}\nMemory: {node['attributes']['allocated_resources']['memory']}/{node['attributes']['memory']} MiB\nDisk: {node['attributes']['allocated_resources']['disk']}/{node['attributes']['disk']} MiB```", inline=False)
