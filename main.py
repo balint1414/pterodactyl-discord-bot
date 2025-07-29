@@ -1,11 +1,16 @@
 import discord, os, requests, sqlite3
 from dotenv import load_dotenv
+from datetime import datetime
 load_dotenv()
 
 bot = discord.Bot()
 db = sqlite3.connect("db.db")
 owner_ids = [int(id) for id in os.getenv("ADMIN_IDS", "").split(",") if id.isdigit()]
 setup_command_id = None
+async def format_date(date_str):
+    dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    unix = int(dt.timestamp())
+    return f"<t:{unix}:f>"
 @bot.event
 async def on_ready():
     global setup_command_id
@@ -23,6 +28,7 @@ def need_to_setup_embed():
 noPermEmbed = discord.Embed(title="No permission", description="You don't have permission to use this command.", color=discord.Color.red())
 
 list = bot.create_group("list", "Fetch datas from Pterodactyl")
+info = bot.create_group("info", "Fetch datas from Pterodactyl")
 
 @list.command(description="List all users")
 async def users(ctx):
@@ -34,7 +40,7 @@ async def users(ctx):
         r = requests.get(os.getenv("PTERODACTYL_URL") + "/api/application/users", headers={"Authorization":"Bearer " + os.getenv("PTERODACTYL_ADMIN_API_KEY"), "Accept": "Application/vnd.pterodactyl.v1+json"})
         embed = discord.Embed(title="Users", description="List of all users", color=discord.Color.green())
         for user in r.json()["data"]:
-            embed.add_field(name=user["attributes"]["username"], value=f"ID: {user['attributes']['id']}\nEmail: {user['attributes']['email']}\nFull name: {user['attributes']['first_name']} {user['attributes']['last_name']}", inline=True)
+            embed.add_field(name=user["attributes"]["username"], value=f"ID: ```{user['attributes']['id']}\nEmail: {user['attributes']['email']}```", inline=True)
         await ctx.respond(embed=embed, ephemeral=True)
     except Exception as e:
         errorEmbed = discord.Embed(title="Error", description="An error occurred while processing your request. Maybe the token had a bad day?", color=discord.Color.red(), fields=[discord.EmbedField(name="Error", value=str(e))])
@@ -118,4 +124,27 @@ async def setup(ctx, token: str):
         errorEmbed = discord.Embed(title="Error", description="An error occurred while processing your request. Maybe the token had a bad day?", color=discord.Color.red(), fields=[discord.EmbedField(name="Error", value=str(e))])
         await ctx.respond(embed=errorEmbed, ephemeral=True)
 
+@info.command(description="Get information about a user")
+async def user(ctx, user_id: int):
+    await ctx.response.defer(ephemeral=True)
+    if ctx.author.id not in owner_ids:
+        await ctx.respond(embed=noPermEmbed, ephemeral=True)
+        return
+    try:
+        r = requests.get(os.getenv("PTERODACTYL_URL") + f"/api/application/users/{user_id}", headers={"Authorization":"Bearer " + os.getenv("PTERODACTYL_ADMIN_API_KEY"), "Accept": "Application/vnd.pterodactyl.v1+json"})
+        if r.status_code != 200:
+            await ctx.respond(embed=discord.Embed(title="Error", description="User not found or invalid user ID.", color=discord.Color.red()), ephemeral=True)
+            return
+        user_data = r.json()["attributes"]
+        embed = discord.Embed(title="User Information", description=f"Information for user ID {user_id}", color=discord.Color.green())
+        embed.add_field(name="Username", value=user_data["username"], inline=True)
+        embed.add_field(name="Email", value=user_data["email"], inline=True)
+        embed.add_field(name="Full Name", value=f"{user_data['first_name']} {user_data['last_name']}", inline=True)
+        embed.add_field(name="Created At", value=await format_date(user_data["created_at"]), inline=True)
+        embed.add_field(name="Updated At", value=await format_date(user_data["updated_at"]), inline=True)
+        await ctx.respond(embed=embed, ephemeral=True)
+    except Exception as e:
+        errorEmbed = discord.Embed(title="Error", description="An error occurred while processing your request. Maybe the token had a bad day?", color=discord.Color.red(), fields=[discord.EmbedField(name="Error", value=str(e))])
+        await ctx.respond(embed=errorEmbed, ephemeral=True)
+        return
 bot.run(os.getenv("TOKEN"))
