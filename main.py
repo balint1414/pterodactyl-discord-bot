@@ -157,7 +157,6 @@ async def is_valid_choice(type: str, user_id: int, choice: str):
 async def getUserOrServer(ctx: discord.AutocompleteContext):
     options = getattr(ctx, "options", None)
     type = options.get('type', None) if options else None
-    print(type)
     if type == 'server':
         cur = db.cursor()
         cur.execute("SELECT * FROM users WHERE userid = ?", (ctx.interaction.user.id,))
@@ -166,8 +165,6 @@ async def getUserOrServer(ctx: discord.AutocompleteContext):
             return []
         token = user[1]
         r = requests.get(os.getenv("PTERODACTYL_URL") + "/api/client", headers={"Authorization":"Bearer " + token, "Accept": "Application/vnd.pterodactyl.v1+json"})
-        print(r.status_code)
-        print(r.text)
         servers = r.json()["data"]
         return [discord.OptionChoice(name=str(server["attributes"]["name"]), value=str(server["attributes"]["identifier"])) for server in servers]
     elif type == 'user':
@@ -205,8 +202,6 @@ async def user(
         token = user[1]
         try:
             r = requests.get(os.getenv("PTERODACTYL_URL") + f"/api/client/servers/{choice}", headers={"Authorization":"Bearer " + token, "Accept": "Application/vnd.pterodactyl.v1+json"})
-            print(r.status_code)
-            print(r.text)
             if r.status_code != 200:
                 await ctx.respond(embed=discord.Embed(title="Error", description="Server not found or invalid server ID.", color=discord.Color.red()), ephemeral=True)
                 return
@@ -217,6 +212,7 @@ async def user(
             embed.add_field(name="Node", value=server_data["node"], inline=True)
             embed.add_field(name="Description", value=server_data["description"] or "No description provided", inline=True)
             embed.add_field(name="UUID", value=server_data["uuid"], inline=True)
+            embed.add_field(name="IP Address", value=f"{server_data["relationships"]["allocations"]["data"][0]["attributes"]["ip"]}:{server_data["relationships"]["allocations"]["data"][0]["attributes"]["port"]}", inline=True)
             await ctx.respond(embed=embed, ephemeral=True)
         except Exception as e:
             errorEmbed = discord.Embed(title="Error", description="An error occurred while processing your request. Maybe the token had a bad day?", color=discord.Color.red(), fields=[discord.EmbedField(name="Error", value=str(e))])
