@@ -9,5 +9,9 @@ A Discord bot made with Python using the Pycord package, allowing you to easily 
 - Start the bot using `python3 main.py` command.
 
 ### Tested Python versions
+
 - On Pterodactyl panel: `ghcr.io/parkervcp/yolks:python_3.12` docker image
 - On Windows: Python 3.13.6
+
+> [!CAUTION]
+> It is recommended to use the version listed above, other versions are not supported.
